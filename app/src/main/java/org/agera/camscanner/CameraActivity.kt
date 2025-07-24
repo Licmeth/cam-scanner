@@ -1,13 +1,18 @@
 package org.agera.camscanner
 
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.appcompat.widget.AppCompatImageView
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -15,6 +20,7 @@ import androidx.core.content.ContextCompat
 import org.opencv.android.OpenCVLoader
 import org.opencv.core.*
 import org.opencv.imgproc.Imgproc
+import androidx.core.graphics.createBitmap
 
 class CameraActivity : ComponentActivity() {
 
@@ -31,7 +37,9 @@ class CameraActivity : ComponentActivity() {
     private lateinit var previewView: PreviewView
     private lateinit var backButton: ImageButton
     private lateinit var toggleCameraButton: ImageButton
+    private lateinit var overlayImageView: AppCompatImageView
     private var cameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+    private var imageProcessor: ImageProcessor? = null
 
     private val requestPermissionLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
         if (isGranted) {
@@ -51,6 +59,7 @@ class CameraActivity : ComponentActivity() {
 
         // Initialize views
         previewView = findViewById<PreviewView>(R.id.previewView)
+        overlayImageView = findViewById<AppCompatImageView>(R.id.overlayImageView)
         backButton = findViewById<ImageButton>(R.id.backButton)
         toggleCameraButton = findViewById<ImageButton>(R.id.toggleCameraButton)
 
@@ -80,27 +89,23 @@ class CameraActivity : ComponentActivity() {
             // Permission is already granted, start the camera
             startCamera()
         }
-
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-        cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
-            val preview = Preview.Builder().build().also {
-                it.setSurfaceProvider(previewView.surfaceProvider)
-            }
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-            cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(this, cameraSelector, preview)
-        }, ContextCompat.getMainExecutor(this))
     }
 
     override fun onPause() {
         super.onPause()
         // Disable the camera view to stop processing frames
+        imageProcessor = null
     }
 
     override fun onResume() {
         super.onResume()
         // Enable the camera view to start processing frames
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Release resources if needed
+        imageProcessor = null
     }
 
     private fun startCamera() {
@@ -110,9 +115,30 @@ class CameraActivity : ComponentActivity() {
             val preview = Preview.Builder().build().also {
                 it.setSurfaceProvider(previewView.surfaceProvider)
             }
+            val imageAnalysis = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build()
+            imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(this)) { imageProxy ->
+                // Check if the imageProcessor is initialized
+                if (imageProcessor == null) {
+                    imageProcessor = ImageProcessor(imageProxy.width, imageProxy.height)
+                }
+                // Convert imageProxy to OpenCV Mat, process, and display result
+                val mat = imageProcessor!!.imageProxyToGreyscaleMat(imageProxy)
+                // val processed = processCameraImage(mat)
+                showOverlay(imageProcessor!!.matToBitmap(mat))
+                imageProxy.close()
+            }
             cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(this, this.cameraSelector, preview)
+            cameraProvider.bindToLifecycle(this, this.cameraSelector, preview, imageAnalysis)
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun showOverlay(bitmap: Bitmap) {
+        runOnUiThread {
+            overlayImageView.setImageBitmap(bitmap)
+            overlayImageView.visibility = android.view.View.VISIBLE
+        }
     }
 
     /**
