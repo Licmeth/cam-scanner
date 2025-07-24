@@ -7,15 +7,16 @@ import android.view.WindowManager
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
-import org.opencv.android.CameraBridgeViewBase
-import org.opencv.android.JavaCamera2View
-import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2
 import org.opencv.android.OpenCVLoader
 import org.opencv.core.*
 import org.opencv.imgproc.Imgproc
 
-class CameraActivity : ComponentActivity(), CvCameraViewListener2 {
+class CameraActivity : ComponentActivity() {
 
     companion object {
         const val DIM_LIMIT = 1080 // Maximum dimension for image processing
@@ -27,14 +28,15 @@ class CameraActivity : ComponentActivity(), CvCameraViewListener2 {
         const val ALLOW_IMAGE_ROTATION = true // Allow image rotation
     }
 
-    private lateinit var previewView: JavaCamera2View
+    private lateinit var previewView: PreviewView
     private lateinit var backButton: ImageButton
     private lateinit var toggleCameraButton: ImageButton
-    private var cameraIndex = 1 // Index of the camera (0 for back, 1 for front)
+    private var cameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
     private val requestPermissionLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
         if (isGranted) {
-            previewView.setCameraPermissionGranted()
+            // Permission is granted, start the camera
+            startCamera()
         } else {
             Toast.makeText(this, "Camera permission is required to scan a document", Toast.LENGTH_SHORT).show()
             finish()
@@ -48,7 +50,7 @@ class CameraActivity : ComponentActivity(), CvCameraViewListener2 {
         setContentView(R.layout.activity_camera)
 
         // Initialize views
-        previewView = findViewById<JavaCamera2View>(R.id.previewView)
+        previewView = findViewById<PreviewView>(R.id.previewView)
         backButton = findViewById<ImageButton>(R.id.backButton)
         toggleCameraButton = findViewById<ImageButton>(R.id.toggleCameraButton)
 
@@ -64,51 +66,53 @@ class CameraActivity : ComponentActivity(), CvCameraViewListener2 {
         }
 
         toggleCameraButton.setOnClickListener {
-            if (cameraIndex == 0) {
-                cameraIndex = 1 // Switch to front camera
-            } else {
-                cameraIndex = 0 // Switch to back camera
-            }
-            previewView.setCameraIndex(cameraIndex)
+            cameraSelector = if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
+            startCamera()
         }
 
-        previewView.setCvCameraViewListener(this)
-        previewView.setCameraIndex(cameraIndex)
 
         // Check for camera permissions
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA)
-            != PackageManager.PERMISSION_GRANTED) {
+            != PackageManager.PERMISSION_GRANTED
+        ) {
             requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)
         } else {
-            previewView.setCameraPermissionGranted()
+            // Permission is already granted, start the camera
+            startCamera()
         }
+
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        cameraProviderFuture.addListener({
+            val cameraProvider = cameraProviderFuture.get()
+            val preview = Preview.Builder().build().also {
+                it.setSurfaceProvider(previewView.surfaceProvider)
+            }
+            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+            cameraProvider.unbindAll()
+            cameraProvider.bindToLifecycle(this, cameraSelector, preview)
+        }, ContextCompat.getMainExecutor(this))
     }
 
     override fun onPause() {
         super.onPause()
-        previewView.disableView()
+        // Disable the camera view to stop processing frames
     }
 
     override fun onResume() {
         super.onResume()
-        previewView.enableView()
+        // Enable the camera view to start processing frames
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        previewView.disableView()
-    }
-
-    override fun onCameraFrame(inputFrame: CameraBridgeViewBase.CvCameraViewFrame): Mat {
-        return processCameraImage(inputFrame.rgba())
-    }
-
-    override fun onCameraViewStarted(width: Int, height: Int) {
-        // This method is not used in this implementation
-    }
-
-    override fun onCameraViewStopped() {
-        // This method is not used in this implementation
+    private fun startCamera() {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        cameraProviderFuture.addListener({
+            val cameraProvider = cameraProviderFuture.get()
+            val preview = Preview.Builder().build().also {
+                it.setSurfaceProvider(previewView.surfaceProvider)
+            }
+            cameraProvider.unbindAll()
+            cameraProvider.bindToLifecycle(this, this.cameraSelector, preview)
+        }, ContextCompat.getMainExecutor(this))
     }
 
     /**

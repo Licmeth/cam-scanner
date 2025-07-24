@@ -1,16 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:opencv="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
     <!-- Camera Preview -->
-    <org.opencv.android.JavaCamera2View
+    <androidx.camera.view.PreviewView
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:layout_marginBottom="80dp"
-        android:id="@+id/previewView"
-        opencv:camera_id="any" />
+        android:id="@+id/previewView" />
 
     <!-- Back Arrow (overlays preview, top left) -->
     <ImageButton
@@ -21,7 +20,9 @@
         android:layout_margin="16dp"
         android:background="@android:color/transparent"
         android:src="@drawable/outline_arrow_back_24"
-        android:contentDescription="Back" />
+        android:tint="@android:color/white"
+        android:contentDescription="Back"
+        tools:ignore="UseAppTint" />
 
     <ImageButton
         android:id="@+id/toggleCameraButton"
@@ -31,7 +32,9 @@
         android:layout_margin="16dp"
         android:background="@android:color/transparent"
         android:src="@drawable/baseline_flip_camera_android_24"
-        android:contentDescription="Toggle camera" />
+        android:tint="@android:color/white"
+        android:contentDescription="Toggle camera"
+        tools:ignore="UseAppTint" />
 
     <!-- Bottom Bar with Three Buttons -->
     <LinearLayout
