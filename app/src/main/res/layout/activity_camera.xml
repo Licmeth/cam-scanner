@@ -5,7 +5,7 @@
     android:layout_height="match_parent">
 
     <!-- Camera Preview -->
-    <org.opencv.android.JavaCameraView
+    <org.opencv.android.JavaCamera2View
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:layout_marginBottom="80dp"
@@ -20,8 +20,18 @@
         android:layout_gravity="top|start"
         android:layout_margin="16dp"
         android:background="@android:color/transparent"
-        android:src="@android:drawable/ic_media_previous"
+        android:src="@drawable/outline_arrow_back_24"
         android:contentDescription="Back" />
+
+    <ImageButton
+        android:id="@+id/toggleCameraButton"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="16dp"
+        android:background="@android:color/transparent"
+        android:src="@drawable/baseline_flip_camera_android_24"
+        android:contentDescription="Toggle camera" />
 
     <!-- Bottom Bar with Three Buttons -->
     <LinearLayout
