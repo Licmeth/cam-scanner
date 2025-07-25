@@ -6,13 +6,11 @@ import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
 import android.widget.ImageButton
-import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -20,18 +18,15 @@ import androidx.core.content.ContextCompat
 import org.opencv.android.OpenCVLoader
 import org.opencv.core.*
 import org.opencv.imgproc.Imgproc
-import androidx.core.graphics.createBitmap
 
 class CameraActivity : ComponentActivity() {
 
     companion object {
-        const val DIM_LIMIT = 1080 // Maximum dimension for image processing
         const val MORPH_KERNEL_SIZE = 10.0 // Size of the morphological kernel
         const val MORPH_ITERATIONS = 3 // Number of iterations for morphological operations
         const val GRAB_CUT_ITERATIONS = 5 // Number of iterations for GrabCut algorithm
         const val GRAB_CUT_RECT_X_SIZE = 200 // X size of the rectangle for GrabCut
         const val GRAB_CUT_RECT_Y_SIZE = 200 // Y size of the rectangle for GrabCut
-        const val ALLOW_IMAGE_ROTATION = true // Allow image rotation
     }
 
     private lateinit var previewView: PreviewView
@@ -121,12 +116,9 @@ class CameraActivity : ComponentActivity() {
             imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(this)) { imageProxy ->
                 // Check if the imageProcessor is initialized
                 if (imageProcessor == null) {
-                    imageProcessor = ImageProcessor(imageProxy.width, imageProxy.height)
+                    imageProcessor = ImageProcessor.create(imageProxy.width, imageProxy.height)
                 }
-                // Convert imageProxy to OpenCV Mat, process, and display result
-                val mat = imageProcessor!!.imageProxyToGreyscaleMat(imageProxy)
-                // val processed = processCameraImage(mat)
-                showOverlay(imageProcessor!!.matToBitmap(mat))
+                showOverlay(imageProcessor!!.processImage(imageProxy))
                 imageProxy.close()
             }
             cameraProvider.unbindAll()
@@ -146,7 +138,7 @@ class CameraActivity : ComponentActivity() {
      * The process is taken from https://learnopencv.com/automatic-document-scanner-using-opencv/
      */
     private fun processCameraImage(image: Mat): Mat {
-        val img = prepareImageForProcessing(image)
+        //val img = prepareImageForProcessing(image)
 
         // Morphological closing
         //removeDocumentContent(img)
@@ -154,12 +146,10 @@ class CameraActivity : ComponentActivity() {
         // GrabCut
         //val imgMasked = removeBackground(img)
 
-        return img // Return the masked image for now
+        return Mat() // Return the masked image for now
 
         /*
         // Grayscale and blur
-        val gray = Mat()
-        Imgproc.cvtColor(imgMasked, gray, Imgproc.COLOR_BGR2GRAY)
         Imgproc.GaussianBlur(gray, gray, Size(11.0, 11.0), 0.0)
 
         // Edge detection
@@ -200,32 +190,6 @@ class CameraActivity : ComponentActivity() {
         val final = Mat()
         Imgproc.warpPerspective(origImg, final, M, Size(destinationCorners[2].x, destinationCorners[2].y), Imgproc.INTER_LINEAR)
         return final */
-    }
-
-    private fun prepareImageForProcessing(image: Mat): Mat {
-        val maxDim = maxOf(image.rows(), image.cols())
-        val img = image.clone()
-
-        // limit dimensions
-        if (maxDim > DIM_LIMIT) {
-            val resizeScale = DIM_LIMIT.toDouble() / maxDim
-            Imgproc.resize(img, img, Size(), resizeScale, resizeScale, Imgproc.INTER_AREA)
-        }
-
-        // Convert to greyscale
-        if (img.channels() == 4) {
-            Imgproc.cvtColor(img, img, Imgproc.COLOR_BGRA2GRAY)
-        } else if (img.channels() == 3) {
-            Imgproc.cvtColor(img, img, Imgproc.COLOR_BGR2GRAY)
-        }
-
-        // Rotate by 90 degrees if needed
-        val img2 = img.clone()
-        if (ALLOW_IMAGE_ROTATION && img.cols() > img.rows()) {
-           // Core.rotate(img, img2, Core.ROTATE_90_CLOCKWISE)
-        }
-
-        return img2
     }
 
     /**
@@ -271,13 +235,7 @@ class CameraActivity : ComponentActivity() {
         return maskedImage
     }
 
-    /**
-     * Removes the content of the document by applying morphological closing.
-     */
-    private fun removeDocumentContent(img: Mat) {
-        val kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(MORPH_KERNEL_SIZE, MORPH_KERNEL_SIZE))
-        Imgproc.morphologyEx(img, img, Imgproc.MORPH_CLOSE, kernel, Point(-1.0, -1.0), MORPH_ITERATIONS)
-    }
+
 
     /*
     private fun orderPoints(points: MatOfPoint2f): Array<Point> {
