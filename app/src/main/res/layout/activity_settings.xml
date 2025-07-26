@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <TextView
+        android:text="Output Stage"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"/>
+
+    <EditText
+        android:id="@+id/editOutputStage"
+        android:inputType="number"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <TextView
+        android:text="Maximal Processing Image Height"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"/>
+
+    <EditText
+        android:id="@+id/editMaxProcessingImageHeight"
+        android:inputType="number"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <TextView
+        android:text="Morphology Kernel Size"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"/>
+
+    <EditText
+        android:id="@+id/editMorphologyKernelSize"
+        android:inputType="numberDecimal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <TextView
+        android:text="Morphology Iterations"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"/>
+
+    <EditText
+        android:id="@+id/editMorphologyIterations"
+        android:inputType="number"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <TextView
+        android:text="Gaussian Blur Sigma X"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"/>
+
+    <EditText
+        android:id="@+id/editGaussianBlurSigmaX"
+        android:inputType="number"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <TextView
+        android:text="Gaussian Blur Kernel Size"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"/>
+
+    <EditText
+        android:id="@+id/editGaussianBlurKernelSize"
+        android:inputType="numberDecimal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <TextView
+        android:text="Dilation Kernel Size"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"/>
+
+    <EditText
+        android:id="@+id/editDilationKernelSize"
+        android:inputType="numberDecimal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <TextView
+        android:text="Canny Lower Hysteresis Threshold"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"/>
+
+    <EditText
+        android:id="@+id/editCannyLowerHysteresisThreshold"
+        android:inputType="numberDecimal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <TextView
+        android:text="Canny Upper Hysteresis Threshold"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"/>
+
+    <EditText
+        android:id="@+id/editCannyUpperHysteresisThreshold"
+        android:inputType="numberDecimal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <TextView
+        android:text="Contour Color"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"/>
+
+    <EditText
+        android:id="@+id/editContourColor"
+        android:inputType="text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="e.g., #FF0000 for red"/>
+
+    <TextView
+        android:text="Contour Thickness"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"/>
+
+    <EditText
+        android:id="@+id/editContourThickness"
+        android:inputType="number"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <Button
+        android:id="@+id/saveSettingsButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Save"/>
+</LinearLayout>

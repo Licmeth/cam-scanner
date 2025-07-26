@@ -10,5 +10,11 @@
         android:layout_height="wrap_content"
         android:text="Open Camera"
         android:layout_marginTop="24dp"/>
+    <Button
+        android:id="@+id/openSettingsButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Open Settings"
+        android:layout_marginTop="24dp"/>
 
 </LinearLayout>

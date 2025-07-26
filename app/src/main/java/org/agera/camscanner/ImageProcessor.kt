@@ -7,7 +7,9 @@ import androidx.core.graphics.createBitmap
 import org.opencv.core.Core
 import org.opencv.core.CvType
 import org.opencv.core.Mat
+import org.opencv.core.MatOfPoint
 import org.opencv.core.Point
+import org.opencv.core.Scalar
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 
@@ -16,24 +18,11 @@ class ImageProcessor private constructor(val inputWidth: Int,
                                          val width: Int,
                                          val height: Int,
                                          val isNeedsScaling: Boolean,
-                                         val isNeedsRotation: Boolean) {
+                                         val isNeedsRotation: Boolean,
+                                         val config: ImageProcessorConfig) {
 
     companion object {
-        const val MAX_IMAGE_HEIGHT: Int = 1080 // Maximum pixel height for the image to be processed
-        const val MORPH_KERNEL_SIZE: Double = 10.0 // Size of the morphological kernel
-        const val MORPH_ITERATIONS: Int = 3 // Number of iterations for morphological operations
-        const val GAUSSIAN_BLUR_SIGMA_X: Double = 0.0 // Sigma value for Gaussian blur, 0 means it is calculated from kernel size
-        const val GAUSSIAN_BLUR_KERNEL_SIZE: Double = 11.0 // Size of the kernel for Gaussian blur
-        const val EDGE_DILATE_KERNEL_SIZE: Double = 5.0 // Size of the kernel for dilation
-        const val CANNY_LOWER_HYSTERESIS_THRESHOLD: Double = 30.0 // First threshold for Canny edge detection
-        const val CANNY_UPPER_HYSTERESIS_THRESHOLD: Double = 150.0 // Second threshold for Canny edge detection
-        const val GRAB_CUT_ITERATIONS: Int = 5 // Number of iterations for GrabCut algorithm
-        const val GRAB_CUT_RECT_X_SIZE: Int = 200 // X size of the rectangle for GrabCut
-        const val GRAB_CUT_RECT_Y_SIZE: Int = 200 // Y size of the rectangle for GrabCut
-
-        val MORPH_KERNEL: Mat = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(MORPH_KERNEL_SIZE, MORPH_KERNEL_SIZE))
-        val MORPH_ANCHOR: Point = Point(-1.0, -1.0) // Anchor point for the morphological kernel
-        val DILATE_KERNEL: Mat = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, Size(EDGE_DILATE_KERNEL_SIZE, EDGE_DILATE_KERNEL_SIZE))
+        val TRANSPARENT_PIXEL: Scalar = Scalar(0.0, 0.0, 0.0, 0.0)
 
         // Names of the constants used for image processing
         const val SCALE_DIMENSIONS: Boolean = true
@@ -48,18 +37,19 @@ class ImageProcessor private constructor(val inputWidth: Int,
          * @param height The height of the image.
          * @return An [ImageProcessor] instance configured for the given dimensions.
          */
-        fun create(width: Int, height: Int): ImageProcessor {
+        fun create(width: Int, height: Int, config: ImageProcessorConfig): ImageProcessor {
             return (if (height < width) {
                 // Image is in landscape orientation and needs to be rotated
-                if (width > MAX_IMAGE_HEIGHT) {
+                if (width > config.maxImageHeight) {
                     // Scale down the image to fit within the maximum height
                     ImageProcessor(
                             height,
                             width,
-                            height * MAX_IMAGE_HEIGHT / width,
-                            MAX_IMAGE_HEIGHT,
+                            height * config.maxImageHeight / width,
+                            config.maxImageHeight,
                             SCALE_DIMENSIONS,
-                            ROTATE)
+                            ROTATE,
+                            config)
                 } else {
                     // Keep the original dimensions
                     ImageProcessor(
@@ -68,19 +58,21 @@ class ImageProcessor private constructor(val inputWidth: Int,
                             height,
                             width,
                             KEEP_DIMENSIONS,
-                            ROTATE)
+                            ROTATE,
+                            config)
                 }
             } else {
                 // Image is in portrait orientation and does not need to be rotated
-                if (width > MAX_IMAGE_HEIGHT) {
+                if (width > config.maxImageHeight) {
                     // Scale down the image to fit within the maximum height
                     ImageProcessor(
                             width,
                             height,
-                            width * MAX_IMAGE_HEIGHT / height,
-                            MAX_IMAGE_HEIGHT,
+                            width * config.maxImageHeight / height,
+                            config.maxImageHeight,
                             SCALE_DIMENSIONS,
-                            KEEP_ORIENTATION)
+                            KEEP_ORIENTATION,
+                            config)
                 } else {
                     // Keep the original dimensions
                     ImageProcessor(
@@ -89,16 +81,26 @@ class ImageProcessor private constructor(val inputWidth: Int,
                             width,
                             height,
                             KEEP_DIMENSIONS,
-                            KEEP_ORIENTATION)
+                            KEEP_ORIENTATION,
+                            config)
                 }
             })
         }
     }
 
-    private val rgbaMat: Mat = Mat.zeros(inputHeight, inputWidth, CvType.CV_8UC4)
+    private val morphKernel: Mat = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(config.morphKernelSize, config.morphKernelSize))
+    private val morphAnchor: Point = Point(-1.0, -1.0) // Anchor point for the morphological kernel
+    private val dilateKernel: Mat = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, Size(config.edgeDilateKernelSize, config.edgeDilateKernelSize))
+    private val gaussianBlurKernelSize: Size = Size(config.gaussianBlurKernelSize, config.gaussianBlurKernelSize)
+
+    private val outputMat: Mat = Mat.zeros(inputHeight, inputWidth, CvType.CV_8UC4)
+    private val rgbaProcessingMat: Mat = Mat.zeros(height, width, CvType.CV_8UC4)
     private val processingMat: Mat = Mat.zeros(height, width, CvType.CV_8UC1)
     private val orientedInputMat: Mat = Mat.zeros(inputHeight, inputWidth, CvType.CV_8UC1)
     private val unrotatedInputMat: Mat = Mat.zeros(inputWidth, inputHeight, CvType.CV_8UC1)
+    private val hierarchy: Mat = Mat()
+    private val contours: MutableList<MatOfPoint> = mutableListOf()
+    private val outputSize: Size = Size(inputWidth.toDouble(), inputHeight.toDouble())
 
     /**
      * Processes the camera image to detect a document and apply an overlay with it's borders.
@@ -106,9 +108,17 @@ class ImageProcessor private constructor(val inputWidth: Int,
      */
     fun processImage(imageProxy: ImageProxy): Bitmap {
         preprocessInput(imageProxy)
+        if (config.outputStage == DebugOutputStage.PREPROCESSED) { return createBitmap(processingMat) }
+
         removeDocumentContent()
+        if (config.outputStage == DebugOutputStage.CONTENT_REMOVED) { return createBitmap(processingMat) }
+
         edgeDetection()
-        return createBitmap(processingMat)
+        if (config.outputStage == DebugOutputStage.EDGES_DETECTED) { return createBitmap(processingMat) }
+
+        findAndDrawContour()
+        scaleOutput()
+        return createBitmap(outputMat)
     }
 
     /**
@@ -118,15 +128,15 @@ class ImageProcessor private constructor(val inputWidth: Int,
      * @return A Bitmap representation of the Mat.
      */
     fun createBitmap(mat: Mat): Bitmap {
-        if (mat.channels() == 1) {
-            // If the Mat is greyscale, convert it to RGBA
-            Imgproc.cvtColor(mat, rgbaMat, Imgproc.COLOR_GRAY2RGBA)
-        } else if (mat.channels() == 3) {
-            // If the Mat is BGR, convert it to RGBA
-            Imgproc.cvtColor(mat, rgbaMat, Imgproc.COLOR_BGR2RGBA)
-        }
+//        if (mat.channels() == 1) {
+//            // If the Mat is greyscale, convert it to RGBA
+//            Imgproc.cvtColor(mat, rgbaMat, Imgproc.COLOR_GRAY2RGBA)
+//        } else if (mat.channels() == 3) {
+//            // If the Mat is BGR, convert it to RGBA
+//            Imgproc.cvtColor(mat, rgbaMat, Imgproc.COLOR_BGR2RGBA)
+//        }
         val bitmap = createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB_8888)
-        org.opencv.android.Utils.matToBitmap(rgbaMat, bitmap)
+        org.opencv.android.Utils.matToBitmap(mat, bitmap)
         return bitmap
     }
 
@@ -158,7 +168,7 @@ class ImageProcessor private constructor(val inputWidth: Int,
             Imgproc.resize(
                     orientedInputMat,
                     processingMat,
-                    org.opencv.core.Size(
+                    Size(
                             width.toDouble(),
                             height.toDouble()),
                     0.0,
@@ -173,12 +183,57 @@ class ImageProcessor private constructor(val inputWidth: Int,
      * Removes the content of the document by applying morphological closing.
      */
     private fun removeDocumentContent() {
-        Imgproc.morphologyEx(processingMat, processingMat, Imgproc.MORPH_CLOSE, MORPH_KERNEL, MORPH_ANCHOR, MORPH_ITERATIONS)
+        Imgproc.morphologyEx(processingMat, processingMat, Imgproc.MORPH_CLOSE, morphKernel, morphAnchor, config.morphIterations)
     }
 
     private fun edgeDetection() {
-        Imgproc.GaussianBlur(processingMat, processingMat, Size(GAUSSIAN_BLUR_KERNEL_SIZE, GAUSSIAN_BLUR_KERNEL_SIZE), GAUSSIAN_BLUR_SIGMA_X)
-        Imgproc.Canny(processingMat, processingMat, CANNY_LOWER_HYSTERESIS_THRESHOLD, CANNY_UPPER_HYSTERESIS_THRESHOLD)
-        Imgproc.dilate(processingMat, processingMat, DILATE_KERNEL)
+        Imgproc.GaussianBlur(processingMat, processingMat, gaussianBlurKernelSize, config.gaussianBlurSigmaX)
+        Imgproc.Canny(processingMat, processingMat, config.cannyLowerHysteresisThreshold, config.cannyUpperHysteresisThreshold)
+        //Imgproc.dilate(processingMat, processingMat, DILATE_KERNEL)
+    }
+
+    private fun findAndDrawContour() {
+        contours.clear()
+        Imgproc.findContours(processingMat, contours, hierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_NONE)
+        // clear rgbaProcessingMat
+        rgbaProcessingMat.setTo(TRANSPARENT_PIXEL)
+        if (!contours.isEmpty()) {
+            contours.sortByDescending { Imgproc.contourArea(it) }
+            drawContours(rgbaProcessingMat, contours, 5)
+        }
+        Imgproc.dilate(rgbaProcessingMat, rgbaProcessingMat, dilateKernel)
+    }
+
+    /**
+     * Draws the contours on the image.
+     *
+     * @param image The image on which to draw the contours.
+     * @param contours The list of contours to draw.
+     * @param limit The maximum number of contours to draw.
+     */
+    private fun drawContours(image: Mat, contours: List<MatOfPoint>, limit: Int) {
+        var i: Int = 0
+        while (i < contours.size && i < limit) {
+            Imgproc.drawContours(image, contours, i, config.contourColor, config.contourThickness)
+            i++
+        }
+    }
+
+    /**
+     * Scales the output image to fit the original input dimensions.
+     */
+    private fun scaleOutput() {
+        if (isNeedsScaling) {
+            Imgproc.resize(
+                rgbaProcessingMat,
+                outputMat,
+                outputSize,
+                0.0,
+                0.0,
+                Imgproc.INTER_LINEAR
+            )
+        } else {
+            rgbaProcessingMat.copyTo(outputMat)
+        }
     }
 }

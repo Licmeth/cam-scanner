@@ -15,6 +15,8 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import org.opencv.android.OpenCVLoader
 import org.opencv.core.*
 import org.opencv.imgproc.Imgproc
@@ -35,6 +37,7 @@ class CameraActivity : ComponentActivity() {
     private lateinit var overlayImageView: AppCompatImageView
     private var cameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
     private var imageProcessor: ImageProcessor? = null
+    private val settings = SettingsDataStore(this)
 
     private val requestPermissionLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
         if (isGranted) {
@@ -116,7 +119,20 @@ class CameraActivity : ComponentActivity() {
             imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(this)) { imageProxy ->
                 // Check if the imageProcessor is initialized
                 if (imageProcessor == null) {
-                    imageProcessor = ImageProcessor.create(imageProxy.width, imageProxy.height)
+                    // Start with default configuration
+                    imageProcessor = ImageProcessor.create(
+                        imageProxy.width,
+                        imageProxy.height,
+                        ImageProcessorConfig.DEFAULT)
+
+                    // Load settings asynchronously
+                    lifecycleScope.launch {
+                        imageProcessor = ImageProcessor.create(
+                            imageProxy.width,
+                            imageProxy.height,
+                            ImageProcessorConfig.fromSettings(settings)
+                        )
+                    }
                 }
                 showOverlay(imageProcessor!!.processImage(imageProxy))
                 imageProxy.close()
