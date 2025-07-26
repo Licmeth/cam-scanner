@@ -28,6 +28,78 @@ class SettingsActivity : ComponentActivity() {
         val cannyUpperHysteresisThresholdEdit = findViewById<EditText>(R.id.editCannyUpperHysteresisThreshold)
         val contourColorEdit = findViewById<EditText>(R.id.editContourColor)
         val contourThicknessEdit = findViewById<EditText>(R.id.editContourThickness)
+        val saveButton = findViewById<Button>(R.id.saveSettingsButton)
+
+        saveButton.setOnClickListener {
+            finish()
+        }
+
+        // React on a changed value by user input and update the settings
+        outputStageEdit.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                lifecycleScope.launch { settings.setOutputStage(outputStageEdit.text.toString()) }
+            }
+        }
+
+        maxImageHeightEdit.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                lifecycleScope.launch { settings.setMaxImageHeight(maxImageHeightEdit.text.toString()) }
+            }
+        }
+
+        morphKernelSizeEdit.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                lifecycleScope.launch { settings.setMorphKernelSize(morphKernelSizeEdit.text.toString()) }
+            }
+        }
+
+        morphIterationsEdit.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                lifecycleScope.launch { settings.setMorphIterations(morphIterationsEdit.text.toString()) }
+            }
+        }
+
+        gaussianBlurSigmaXEdit.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                lifecycleScope.launch { settings.setGaussianBlurSigmaX(gaussianBlurSigmaXEdit.text.toString()) }
+            }
+        }
+
+        gaussianBlurKernelSizeEdit.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                lifecycleScope.launch { settings.setGaussianBlurKernelSize(gaussianBlurKernelSizeEdit.text.toString()) }
+            }
+        }
+
+        edgeDilateKernelSizeEdit.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                lifecycleScope.launch { settings.setEdgeDilateKernelSize(edgeDilateKernelSizeEdit.text.toString()) }
+            }
+        }
+
+        cannyLowerHysteresisThresholdEdit.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                lifecycleScope.launch { settings.setCannyLowerHysteresisThreshold(cannyLowerHysteresisThresholdEdit.text.toString()) }
+            }
+        }
+
+        cannyUpperHysteresisThresholdEdit.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                lifecycleScope.launch { settings.setCannyUpperHysteresisThreshold(cannyUpperHysteresisThresholdEdit.text.toString()) }
+            }
+        }
+
+        contourColorEdit.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                lifecycleScope.launch { settings.setContourColor(contourColorEdit.text.toString()) }
+            }
+        }
+
+        contourThicknessEdit.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                lifecycleScope.launch { settings.setContourThickness(contourThicknessEdit.text.toString()) }
+            }
+        }
 
         lifecycleScope.launch {
             settings.allSettings.collectLatest { settingsMap ->
@@ -43,28 +115,6 @@ class SettingsActivity : ComponentActivity() {
                 settingsMap[SettingKeys.CONTOUR_COLOR.name]?.let { contourColorEdit.setText(intToArgbString(it as Int)) }
                 settingsMap[SettingKeys.CONTOUR_THICKNESS.name]?.let { contourThicknessEdit.setText(it.toString()) }
             }
-        }
-
-//        lifecycleScope.launch {
-//            settings.outputStage.collectLatest { outputStageEdit.setText(it.toString()) }
-//            settings.maxImageHeight.collectLatest { maxImageHeightEdit.setText(it.toString()) }
-//            settings.morphKernelSize.collectLatest { morphKernelSizeEdit.setText(it.toString()) }
-//            settings.morphIterations.collectLatest { morphIterationsEdit.setText(it.toString()) }
-//            settings.gaussianBlurSigmaX.collectLatest { gaussianBlurSigmaXEdit.setText(it.toString()) }
-//            settings.gaussianBlurKernelSize.collectLatest { gaussianBlurKernelSizeEdit.setText(it.toString()) }
-//            settings.edgeDilateKernelSize.collectLatest { edgeDilateKernelSizeEdit.setText(it.toString()) }
-//            settings.cannyLowerHysteresisThreshold.collectLatest { cannyLowerHysteresisThresholdEdit.setText(it.toString()) }
-//            settings.cannyUpperHysteresisThreshold.collectLatest { cannyUpperHysteresisThresholdEdit.setText(it.toString()) }
-//            settings.contourColor.collectLatest { contourColorEdit.setText(intToArgbString(it.toInt())) }
-//            settings.contourThickness.collectLatest { contourThicknessEdit.setText(it.toString()) }
-//        }
-
-        val saveButton = findViewById<Button>(R.id.saveSettingsButton)
-        saveButton.setOnClickListener {
-            lifecycleScope.launch {
-                settings.setOutputStage(outputStageEdit.text.toString().toIntOrNull() ?: DebugOutputStage.FINAL_OUTPUT.value)
-            };
-            finish()
         }
     }
 

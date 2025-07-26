@@ -1,12 +1,15 @@
 package org.agera.camscanner
 
 import android.content.Context
+import android.graphics.Color
+import androidx.compose.ui.unit.IntOffset
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import androidx.core.graphics.toColorInt
 
 val Context.settingsDataStore by preferencesDataStore(name = "settings")
 
@@ -44,7 +47,10 @@ class SettingsDataStore(private val context: Context) {
         val contourThickness: Int = 2
     )
 
-    // method to return all settings as a dictionary in a single flow
+    /**
+     * Flow that emits a map of all settings.
+     * The keys are the names of the settings, and the values are their corresponding values.
+     */
     val allSettings: Flow<Map<String, Any>> = context.settingsDataStore.data
         .map { preferences ->
             mapOf(
@@ -70,11 +76,24 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    suspend fun setOutputStage(value: String?) {
+        var intValue = value?.trim()?.toIntOrNull()
+        if (intValue == null || intValue !in DebugOutputStage.entries.map { it.value }) {
+            intValue = DEFAULT_VALUES.outputStage
+        }
+        context.settingsDataStore.edit { it[SettingKeys.OUTPUT_STAGE] = intValue }
+    }
+
     val maxImageHeight: Flow<Int> = context.settingsDataStore.data
         .map { it[SettingKeys.MAX_IMAGE_HEIGHT] ?: DEFAULT_VALUES.maxImageHeight }
 
     suspend fun setMaxImageHeight(value: Int) {
         context.settingsDataStore.edit { it[SettingKeys.MAX_IMAGE_HEIGHT] = value }
+    }
+
+    suspend fun setMaxImageHeight(value: String?) {
+        val intValue = toIntOrDefault(value, DEFAULT_VALUES.maxImageHeight)
+        context.settingsDataStore.edit { it[SettingKeys.MAX_IMAGE_HEIGHT] = intValue }
     }
 
     val morphKernelSize: Flow<Double> = context.settingsDataStore.data
@@ -84,11 +103,21 @@ class SettingsDataStore(private val context: Context) {
         context.settingsDataStore.edit { it[SettingKeys.MORPH_KERNEL_SIZE] = value }
     }
 
+    suspend fun setMorphKernelSize(value: String?) {
+        val doubleValue = toDoubleOrDefault(value, DEFAULT_VALUES.morphKernelSize)
+        context.settingsDataStore.edit { it[SettingKeys.MORPH_KERNEL_SIZE] = doubleValue }
+    }
+
     val morphIterations: Flow<Int> = context.settingsDataStore.data
         .map { it[SettingKeys.MORPH_ITERATIONS] ?: DEFAULT_VALUES.morphIterations }
 
     suspend fun setMorphIterations(value: Int) {
         context.settingsDataStore.edit { it[SettingKeys.MORPH_ITERATIONS] = value }
+    }
+
+    suspend fun setMorphIterations(value: String?) {
+        val intValue = toIntOrDefault(value, DEFAULT_VALUES.morphIterations)
+        context.settingsDataStore.edit { it[SettingKeys.MORPH_ITERATIONS] = intValue }
     }
 
     val gaussianBlurSigmaX: Flow<Double> = context.settingsDataStore.data
@@ -98,11 +127,21 @@ class SettingsDataStore(private val context: Context) {
         context.settingsDataStore.edit { it[SettingKeys.GAUSSIAN_BLUR_SIGMA_X] = value }
     }
 
+    suspend fun setGaussianBlurSigmaX(value: String?) {
+        val doubleValue = toDoubleOrDefault(value, DEFAULT_VALUES.gaussianBlurSigmaX)
+        context.settingsDataStore.edit { it[SettingKeys.GAUSSIAN_BLUR_SIGMA_X] = doubleValue }
+    }
+
     val gaussianBlurKernelSize: Flow<Double> = context.settingsDataStore.data
         .map { it[SettingKeys.GAUSSIAN_BLUR_KERNEL_SIZE] ?: DEFAULT_VALUES.gaussianBlurKernelSize }
 
     suspend fun setGaussianBlurKernelSize(value: Double) {
         context.settingsDataStore.edit { it[SettingKeys.GAUSSIAN_BLUR_KERNEL_SIZE] = value }
+    }
+
+    suspend fun setGaussianBlurKernelSize(value: String?) {
+        val doubleValue = toDoubleOrDefault(value, DEFAULT_VALUES.gaussianBlurKernelSize)
+        context.settingsDataStore.edit { it[SettingKeys.GAUSSIAN_BLUR_KERNEL_SIZE] = doubleValue }
     }
 
     val edgeDilateKernelSize: Flow<Double> = context.settingsDataStore.data
@@ -112,11 +151,21 @@ class SettingsDataStore(private val context: Context) {
         context.settingsDataStore.edit { it[SettingKeys.EDGE_DILATE_KERNEL_SIZE] = value }
     }
 
+    suspend fun setEdgeDilateKernelSize(value: String?) {
+        val doubleValue = toDoubleOrDefault(value, DEFAULT_VALUES.edgeDilateKernelSize)
+        context.settingsDataStore.edit { it[SettingKeys.EDGE_DILATE_KERNEL_SIZE] = doubleValue }
+    }
+
     val cannyLowerHysteresisThreshold: Flow<Double> = context.settingsDataStore.data
         .map { it[SettingKeys.CANNY_LOWER_HYSTERESIS_THRESHOLD] ?: DEFAULT_VALUES.cannyLowerHysteresisThreshold }
 
     suspend fun setCannyLowerHysteresisThreshold(value: Double) {
         context.settingsDataStore.edit { it[SettingKeys.CANNY_LOWER_HYSTERESIS_THRESHOLD] = value }
+    }
+
+    suspend fun setCannyLowerHysteresisThreshold(value: String?) {
+        val doubleValue = toDoubleOrDefault(value, DEFAULT_VALUES.cannyLowerHysteresisThreshold)
+        context.settingsDataStore.edit { it[SettingKeys.CANNY_LOWER_HYSTERESIS_THRESHOLD] = doubleValue }
     }
 
     val cannyUpperHysteresisThreshold: Flow<Double> = context.settingsDataStore.data
@@ -126,6 +175,11 @@ class SettingsDataStore(private val context: Context) {
         context.settingsDataStore.edit { it[SettingKeys.CANNY_UPPER_HYSTERESIS_THRESHOLD] = value }
     }
 
+    suspend fun setCannyUpperHysteresisThreshold(value: String?) {
+        val doubleValue = toDoubleOrDefault(value, DEFAULT_VALUES.cannyUpperHysteresisThreshold)
+        context.settingsDataStore.edit { it[SettingKeys.CANNY_UPPER_HYSTERESIS_THRESHOLD] = doubleValue }
+    }
+
     val contourColor: Flow<Int> = context.settingsDataStore.data
         .map { it[SettingKeys.CONTOUR_COLOR] ?: DEFAULT_VALUES.contourColor }
 
@@ -133,10 +187,38 @@ class SettingsDataStore(private val context: Context) {
         context.settingsDataStore.edit { it[SettingKeys.CONTOUR_COLOR] = value }
     }
 
+    suspend fun setContourColor(value: String?) {
+        var intValue: Int?
+
+        try {
+            intValue = value?.trim()?.toColorInt()
+        } catch (e: IllegalArgumentException) {
+            intValue = null
+        }
+
+        if (intValue == null) {
+            intValue = DEFAULT_VALUES.contourColor
+        }
+        context.settingsDataStore.edit { it[SettingKeys.CONTOUR_COLOR] = intValue }
+    }
+
     val contourThickness: Flow<Int> = context.settingsDataStore.data
         .map { it[SettingKeys.CONTOUR_THICKNESS] ?: DEFAULT_VALUES.contourThickness }
 
     suspend fun setContourThickness(value: Int) {
         context.settingsDataStore.edit { it[SettingKeys.CONTOUR_THICKNESS] = value }
+    }
+
+    suspend fun setContourThickness(value: String?) {
+        val intValue = toIntOrDefault(value, DEFAULT_VALUES.contourThickness)
+        context.settingsDataStore.edit { it[SettingKeys.CONTOUR_THICKNESS] = intValue }
+    }
+
+    private fun toIntOrDefault(value: String?, default: Int): Int {
+        return value?.trim()?.toIntOrNull() ?: default
+    }
+
+    private fun toDoubleOrDefault(value: String?, default: Double): Double {
+        return value?.trim()?.toDoubleOrNull() ?: default
     }
 }
