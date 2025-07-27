@@ -199,7 +199,7 @@ class ImageProcessor private constructor(val inputWidth: Int,
         rgbaProcessingMat.setTo(TRANSPARENT_PIXEL)
         if (!contours.isEmpty()) {
             contours.sortByDescending { Imgproc.contourArea(it) }
-            drawContours(rgbaProcessingMat, contours, 5)
+            drawContours(rgbaProcessingMat, contours, config.contourSelectionCount)
         }
         Imgproc.dilate(rgbaProcessingMat, rgbaProcessingMat, dilateKernel)
     }

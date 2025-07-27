@@ -15,11 +15,18 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
 import org.opencv.android.OpenCVLoader
-import org.opencv.core.*
+import org.opencv.core.Core
+import org.opencv.core.CvType
+import org.opencv.core.Mat
+import org.opencv.core.Rect
+import org.opencv.core.Scalar
 import org.opencv.imgproc.Imgproc
+
 
 class CameraActivity : ComponentActivity() {
 
@@ -37,7 +44,9 @@ class CameraActivity : ComponentActivity() {
     private lateinit var overlayImageView: AppCompatImageView
     private var cameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
     private var imageProcessor: ImageProcessor? = null
-    private val settings = SettingsDataStore(this)
+    private val settings: SettingsDataStore by lazy {
+        SettingsDataStore(this)
+    }
 
     private val requestPermissionLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
         if (isGranted) {
@@ -125,13 +134,18 @@ class CameraActivity : ComponentActivity() {
                         imageProxy.height,
                         ImageProcessorConfig.DEFAULT)
 
-                    // Load settings asynchronously
+                    // Load settings asynchronously and listen for changes
                     lifecycleScope.launch {
-                        imageProcessor = ImageProcessor.create(
-                            imageProxy.width,
-                            imageProxy.height,
-                            ImageProcessorConfig.fromSettings(settings)
-                        )
+                        repeatOnLifecycle(Lifecycle.State.STARTED) {
+                            settings.allSettings.collect { newSettings ->
+                                // Update the image processor with new settings
+                                imageProcessor = ImageProcessor.create(
+                                    imageProxy.width,
+                                    imageProxy.height,
+                                    ImageProcessorConfig.fromSettings(newSettings)
+                                )
+                            }
+                        }
                     }
                 }
                 showOverlay(imageProcessor!!.processImage(imageProxy))

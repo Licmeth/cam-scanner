@@ -105,6 +105,17 @@
         android:layout_height="wrap_content"/>
 
     <TextView
+        android:text="Contour Selection Count"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"/>
+
+    <EditText
+        android:id="@+id/editContourSelectionCount"
+        android:inputType="number"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <TextView
         android:text="Contour Color"
         android:layout_height="wrap_content"
         android:layout_width="match_parent"/>

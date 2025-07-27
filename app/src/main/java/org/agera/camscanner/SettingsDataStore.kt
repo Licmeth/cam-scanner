@@ -1,15 +1,13 @@
 package org.agera.camscanner
 
 import android.content.Context
-import android.graphics.Color
-import androidx.compose.ui.unit.IntOffset
+import androidx.core.graphics.toColorInt
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import androidx.core.graphics.toColorInt
 
 val Context.settingsDataStore by preferencesDataStore(name = "settings")
 
@@ -23,6 +21,7 @@ object SettingKeys {
     val EDGE_DILATE_KERNEL_SIZE = doublePreferencesKey("image_processor.edge_dilate_kernel_size")
     val CANNY_LOWER_HYSTERESIS_THRESHOLD = doublePreferencesKey("image_processor.canny_lower_hysteresis_threshold")
     val CANNY_UPPER_HYSTERESIS_THRESHOLD = doublePreferencesKey("image_processor.canny_upper_hysteresis_threshold")
+    val CONTOUR_SELECTION_COUNT = intPreferencesKey("image_processor.contour_selection_count")
     val CONTOUR_COLOR = intPreferencesKey("image_processor.contour_color")
     val CONTOUR_THICKNESS = intPreferencesKey("image_processor.contour_thickness")
 }
@@ -43,6 +42,7 @@ class SettingsDataStore(private val context: Context) {
         val edgeDilateKernelSize: Double = 2.0,
         val cannyLowerHysteresisThreshold: Double = 30.0,
         val cannyUpperHysteresisThreshold: Double = 150.0,
+        val contourSelectionCount: Int = 5,
         val contourColor: Int = 0xFF00FF00.toInt(),
         val contourThickness: Int = 2
     )
@@ -63,6 +63,7 @@ class SettingsDataStore(private val context: Context) {
                 SettingKeys.EDGE_DILATE_KERNEL_SIZE.name to (preferences[SettingKeys.EDGE_DILATE_KERNEL_SIZE] ?: DEFAULT_VALUES.edgeDilateKernelSize),
                 SettingKeys.CANNY_LOWER_HYSTERESIS_THRESHOLD.name to (preferences[SettingKeys.CANNY_LOWER_HYSTERESIS_THRESHOLD] ?: DEFAULT_VALUES.cannyLowerHysteresisThreshold),
                 SettingKeys.CANNY_UPPER_HYSTERESIS_THRESHOLD.name to (preferences[SettingKeys.CANNY_UPPER_HYSTERESIS_THRESHOLD] ?: DEFAULT_VALUES.cannyUpperHysteresisThreshold),
+                SettingKeys.CONTOUR_SELECTION_COUNT.name to (preferences[SettingKeys.CONTOUR_SELECTION_COUNT] ?: DEFAULT_VALUES.contourSelectionCount),
                 SettingKeys.CONTOUR_COLOR.name to (preferences[SettingKeys.CONTOUR_COLOR] ?: DEFAULT_VALUES.contourColor),
                 SettingKeys.CONTOUR_THICKNESS.name to (preferences[SettingKeys.CONTOUR_THICKNESS] ?: DEFAULT_VALUES.contourThickness)
             )
@@ -178,6 +179,18 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setCannyUpperHysteresisThreshold(value: String?) {
         val doubleValue = toDoubleOrDefault(value, DEFAULT_VALUES.cannyUpperHysteresisThreshold)
         context.settingsDataStore.edit { it[SettingKeys.CANNY_UPPER_HYSTERESIS_THRESHOLD] = doubleValue }
+    }
+
+    val contourSelectionCount: Flow<Int> = context.settingsDataStore.data
+        .map { it[SettingKeys.CONTOUR_SELECTION_COUNT] ?: DEFAULT_VALUES.contourSelectionCount }
+
+    suspend fun setContourSelectionCount(value: Int) {
+        context.settingsDataStore.edit { it[SettingKeys.CONTOUR_SELECTION_COUNT] = value }
+    }
+
+    suspend fun setContourSelectionCount(value: String?) {
+        val intValue = toIntOrDefault(value, DEFAULT_VALUES.contourSelectionCount)
+        context.settingsDataStore.edit { it[SettingKeys.CONTOUR_SELECTION_COUNT] = intValue }
     }
 
     val contourColor: Flow<Int> = context.settingsDataStore.data

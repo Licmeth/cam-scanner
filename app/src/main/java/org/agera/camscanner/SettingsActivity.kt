@@ -1,13 +1,13 @@
 package org.agera.camscanner
 
-import android.content.Context
 import android.os.Bundle
-import android.widget.EditText
 import android.widget.Button
+import android.widget.EditText
 import androidx.activity.ComponentActivity
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.launch
 
 class SettingsActivity : ComponentActivity() {
@@ -26,6 +26,7 @@ class SettingsActivity : ComponentActivity() {
         val edgeDilateKernelSizeEdit = findViewById<EditText>(R.id.editDilationKernelSize)
         val cannyLowerHysteresisThresholdEdit = findViewById<EditText>(R.id.editCannyLowerHysteresisThreshold)
         val cannyUpperHysteresisThresholdEdit = findViewById<EditText>(R.id.editCannyUpperHysteresisThreshold)
+        val contourSelectionCountEdit = findViewById<EditText>(R.id.editContourSelectionCount)
         val contourColorEdit = findViewById<EditText>(R.id.editContourColor)
         val contourThicknessEdit = findViewById<EditText>(R.id.editContourThickness)
         val saveButton = findViewById<Button>(R.id.saveSettingsButton)
@@ -89,6 +90,12 @@ class SettingsActivity : ComponentActivity() {
             }
         }
 
+        contourSelectionCountEdit.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                lifecycleScope.launch { settings.setContourSelectionCount(contourSelectionCountEdit.text.toString()) }
+            }
+        }
+
         contourColorEdit.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus) {
                 lifecycleScope.launch { settings.setContourColor(contourColorEdit.text.toString()) }
@@ -102,18 +109,21 @@ class SettingsActivity : ComponentActivity() {
         }
 
         lifecycleScope.launch {
-            settings.allSettings.collectLatest { settingsMap ->
-                settingsMap[SettingKeys.OUTPUT_STAGE.name]?.let { outputStageEdit.setText(it.toString()) }
-                settingsMap[SettingKeys.MAX_IMAGE_HEIGHT.name]?.let { maxImageHeightEdit.setText(it.toString()) }
-                settingsMap[SettingKeys.MORPH_KERNEL_SIZE.name]?.let { morphKernelSizeEdit.setText(it.toString()) }
-                settingsMap[SettingKeys.MORPH_ITERATIONS.name]?.let { morphIterationsEdit.setText(it.toString()) }
-                settingsMap[SettingKeys.GAUSSIAN_BLUR_SIGMA_X.name]?.let { gaussianBlurSigmaXEdit.setText(it.toString()) }
-                settingsMap[SettingKeys.GAUSSIAN_BLUR_KERNEL_SIZE.name]?.let { gaussianBlurKernelSizeEdit.setText(it.toString()) }
-                settingsMap[SettingKeys.EDGE_DILATE_KERNEL_SIZE.name]?.let { edgeDilateKernelSizeEdit.setText(it.toString()) }
-                settingsMap[SettingKeys.CANNY_LOWER_HYSTERESIS_THRESHOLD.name]?.let { cannyLowerHysteresisThresholdEdit.setText(it.toString()) }
-                settingsMap[SettingKeys.CANNY_UPPER_HYSTERESIS_THRESHOLD.name]?.let { cannyUpperHysteresisThresholdEdit.setText(it.toString()) }
-                settingsMap[SettingKeys.CONTOUR_COLOR.name]?.let { contourColorEdit.setText(intToArgbString(it as Int)) }
-                settingsMap[SettingKeys.CONTOUR_THICKNESS.name]?.let { contourThicknessEdit.setText(it.toString()) }
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                settings.allSettings.collectLatest { settingsMap ->
+                    settingsMap[SettingKeys.OUTPUT_STAGE.name]?.let { outputStageEdit.setText(it.toString()) }
+                    settingsMap[SettingKeys.MAX_IMAGE_HEIGHT.name]?.let { maxImageHeightEdit.setText(it.toString()) }
+                    settingsMap[SettingKeys.MORPH_KERNEL_SIZE.name]?.let { morphKernelSizeEdit.setText(it.toString()) }
+                    settingsMap[SettingKeys.MORPH_ITERATIONS.name]?.let { morphIterationsEdit.setText(it.toString()) }
+                    settingsMap[SettingKeys.GAUSSIAN_BLUR_SIGMA_X.name]?.let { gaussianBlurSigmaXEdit.setText(it.toString()) }
+                    settingsMap[SettingKeys.GAUSSIAN_BLUR_KERNEL_SIZE.name]?.let { gaussianBlurKernelSizeEdit.setText(it.toString()) }
+                    settingsMap[SettingKeys.EDGE_DILATE_KERNEL_SIZE.name]?.let { edgeDilateKernelSizeEdit.setText(it.toString()) }
+                    settingsMap[SettingKeys.CANNY_LOWER_HYSTERESIS_THRESHOLD.name]?.let { cannyLowerHysteresisThresholdEdit.setText(it.toString()) }
+                    settingsMap[SettingKeys.CANNY_UPPER_HYSTERESIS_THRESHOLD.name]?.let { cannyUpperHysteresisThresholdEdit.setText(it.toString()) }
+                    settingsMap[SettingKeys.CONTOUR_SELECTION_COUNT.name]?.let { contourSelectionCountEdit.setText(it.toString()) }
+                    settingsMap[SettingKeys.CONTOUR_COLOR.name]?.let { contourColorEdit.setText(intToArgbString(it as Int)) }
+                    settingsMap[SettingKeys.CONTOUR_THICKNESS.name]?.let { contourThicknessEdit.setText(it.toString()) }
+                }
             }
         }
     }
