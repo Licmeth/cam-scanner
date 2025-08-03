@@ -8,6 +8,7 @@ import org.opencv.core.Core
 import org.opencv.core.CvType
 import org.opencv.core.Mat
 import org.opencv.core.MatOfPoint
+import org.opencv.core.MatOfPoint2f
 import org.opencv.core.Point
 import org.opencv.core.Scalar
 import org.opencv.core.Size
@@ -23,6 +24,7 @@ class ImageProcessor private constructor(val inputWidth: Int,
 
     companion object {
         val TRANSPARENT_PIXEL: Scalar = Scalar(0.0, 0.0, 0.0, 0.0)
+        val TWO_PERCENT: Double = 0.02
 
         // Names of the constants used for image processing
         const val SCALE_DIMENSIONS: Boolean = true
@@ -195,11 +197,21 @@ class ImageProcessor private constructor(val inputWidth: Int,
     private fun findAndDrawContour() {
         contours.clear()
         Imgproc.findContours(processingMat, contours, hierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_NONE)
+
         // clear rgbaProcessingMat
         rgbaProcessingMat.setTo(TRANSPARENT_PIXEL)
+
         if (!contours.isEmpty()) {
             contours.sortByDescending { Imgproc.contourArea(it) }
-            drawContours(rgbaProcessingMat, contours, config.contourSelectionCount)
+
+            if (config.outputStage == DebugOutputStage.CONTOURS_DETECTED) {
+                drawContours(rgbaProcessingMat, contours, config.contourSelectionCount)
+            } else if (config.outputStage == DebugOutputStage.CORNERS_DETECTED) {
+                val documentCorners = detectDocumentCorners(contours, config.contourSelectionCount)
+                if (documentCorners != null) {
+                    Imgproc.polylines(rgbaProcessingMat, listOf(MatOfPoint(documentCorners)), true, config.contourColor, config.contourThickness)
+                }
+            }
         }
         Imgproc.dilate(rgbaProcessingMat, rgbaProcessingMat, dilateKernel)
     }
@@ -235,5 +247,23 @@ class ImageProcessor private constructor(val inputWidth: Int,
         } else {
             rgbaProcessingMat.copyTo(outputMat)
         }
+    }
+
+    private fun detectDocumentCorners(contours: List<MatOfPoint>, limit: Int): MatOfPoint2f? {
+        var i:Int = 0
+        while (i < contours.size && i < limit) {
+            var contour = MatOfPoint2f()
+            contours[i].convertTo(contour, CvType.CV_32F)
+
+            val epsilon = TWO_PERCENT * Imgproc.arcLength(contour, true)
+            Imgproc.approxPolyDP(contour, contour, epsilon, true)
+
+            if (contour.total() == 4L) {
+                return contour
+            }
+
+            i++
+        }
+        return null
     }
 }

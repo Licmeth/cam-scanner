@@ -33,7 +33,7 @@ class SettingsDataStore(private val context: Context) {
     }
 
     private data class DefaultValues(
-        val outputStage: Int = DebugOutputStage.FINAL_OUTPUT.value,
+        val outputStage: Int = DebugOutputStage.CORNERS_DETECTED.value,
         val maxImageHeight: Int = 1080,
         val morphKernelSize: Double = 10.0,
         val morphIterations: Int = 3,

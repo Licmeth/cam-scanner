@@ -18,7 +18,7 @@ import android.util.Log
  * @property contourThickness Thickness of the contour lines.
  */
 class ImageProcessorConfig(
-    val outputStage: DebugOutputStage = DebugOutputStage.FINAL_OUTPUT,
+    val outputStage: DebugOutputStage = DebugOutputStage.CORNERS_DETECTED,
     val maxImageHeight: Int = 1080,
     val morphKernelSize: Double = 10.0,
     val morphIterations: Int = 3,
